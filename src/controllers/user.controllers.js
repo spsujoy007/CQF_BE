@@ -3,6 +3,7 @@ import { User } from "../models/users.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const options = {
     httpOnly: true,
@@ -189,5 +190,39 @@ const editUserProfile = asyncHandler ( async ( req, res ) => {
     res.send(updatedData)
 })
 
+const updateUserAvatar = asyncHandler ( async ( req, res ) => {
+    const avatarLocalPath = req.files?.avatar[0]?.path;
 
-export { registerUser, loginUser, changePassword, loggedInProfile, editUserProfile }
+    if( !avatarLocalPath ) {
+        return res
+        .status(404)
+        .json(new ApiResponse(404, {}, "Avatar file is requireed!"))
+    }
+
+    const uploadImage = await uploadOnCloudinary(avatarLocalPath);
+    console.log(uploadImage)
+    
+    const updateAvatar = await User.findByIdAndUpdate(req.user?._id, {
+        $set: {
+            "avatar.url": uploadImage.url,
+            "avatar.public_id": uploadImage.public_id
+        }
+    })
+    
+    updateAvatar.save()
+    
+    return res
+    .status(200)
+    .json(new ApiResponse(
+        200, 
+        {
+            image: {
+            url: uploadImage.url,
+            public_id: uploadImage.public_id
+        }}, 
+        "Avatar updated successfully."
+    ))
+})
+
+
+export { registerUser, loginUser, changePassword, loggedInProfile, editUserProfile, updateUserAvatar }
