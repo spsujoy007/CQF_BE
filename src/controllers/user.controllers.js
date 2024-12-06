@@ -99,7 +99,7 @@ const loginUser = asyncHandler ( async (req, res) => {
     
     // validation check password
     const isPasswordCorrect = await existUser.isPasswordCorrect(password)
-    if(!isPasswordCorrect) throw new ApiError(4041, "invalid user credential")
+    if(!isPasswordCorrect) throw new ApiError(401, "invalid user credential")
 
     // generate access token
     const { access_token, refresh_token } = await generateAccessAndRefreshToken(existUser._id)
@@ -168,5 +168,26 @@ const loggedInProfile = asyncHandler ( async (req, res) => {
     .json( new ApiResponse(200, user[0], "user profile successfully fetched") )
 })
 
+const editUserProfile = asyncHandler ( async ( req, res ) => {
+    const {
+        first_name,
+        last_name,
+        bio
+    } = req.body;
 
-export { registerUser, loginUser, changePassword, loggedInProfile }
+    const updateUserData = await User.findByIdAndUpdate(req.user?._id, {
+        $set: {
+            first_name,
+            last_name,
+            bio
+        }
+    })
+    updateUserData.save()
+
+    const updatedData = await User.findById(req.user?._id)
+
+    res.send(updatedData)
+})
+
+
+export { registerUser, loginUser, changePassword, loggedInProfile, editUserProfile }
